@@ -1,5 +1,5 @@
 import catchAsync from '../helper/catchAsync.js';
-import { sendEmail } from '../helper/email.js';
+;
 import errorApp from '../helper/errorQuery.js';
 import { sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
 import { User } from '../models/model_user.js';
@@ -113,15 +113,10 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   user.tokenResetPassword();
   user.save({ validateBeforeSave: false });
 
-  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/users/forgotPassword/${user?.resetPasswordToken}`;
+ 
 
-  const message = `Please Click this link  : ${resetUrl} for reset password , if you don't reset password please ignore this message`;
 
-  await sendEmail({
-    email: user?.email,
-    subject: 'code is avaliable if less then 10 minutes',
-    message: message,
-  });
+ 
 
   res.status(200).json({
     status: 'sucsess',
