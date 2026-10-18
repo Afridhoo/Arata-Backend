@@ -180,6 +180,7 @@ export const getTourHomePage = catchAsync(async (req, res, next) => {
           as: 'favoriteTour',
         },
       },
+
       {
         $lookup: {
           from: 'tours',
@@ -197,7 +198,8 @@ export const getTourHomePage = catchAsync(async (req, res, next) => {
           'GetTour.locations': 1,
           'GetTour.slot': 1,
           'GetTour.maxGroupSize': 1,
-          favoriteTour: 1,
+          'GetTour._id': 1,
+          countFavorite: { $size: '$favoriteTour' },
           'GetTour.imageCover': 1,
           'GetTour.summary': 1,
           'GetTour.description': 1,
