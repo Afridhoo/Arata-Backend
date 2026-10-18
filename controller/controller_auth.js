@@ -1,5 +1,4 @@
 import catchAsync from '../helper/catchAsync.js';
-;
 import errorApp from '../helper/errorQuery.js';
 import { sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
 import { User } from '../models/model_user.js';
@@ -10,15 +9,23 @@ import { uploadGoogleImg } from '../helper/cloudinary.js';
 export const signup = catchAsync(async (req, res, next) => {
   const { name, email, telphone, password, confirmPassword } = req.body;
 
-  const newUser = await User.create({
-    name,
-    email,
-    telphone,
-    password,
-    confirmPassword,
-  });
+  if (req.body)
+    return next(
+      new errorApp(
+        'Server Sedang Maintanance User Tidak Bisa Buat Akun Baru',
+        400,
+      ),
+    );
 
-  sendToken(res, newUser);
+  // const newUser = await User.create({
+  //   name,
+  //   email,
+  //   telphone,
+  //   password,
+  //   confirmPassword,
+  // });
+
+  // sendToken(res, newUser);
 });
 
 export const login = catchAsync(async (req, res, next) => {
@@ -113,11 +120,6 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   user.tokenResetPassword();
   user.save({ validateBeforeSave: false });
 
- 
-
-
- 
-
   res.status(200).json({
     status: 'sucsess',
     message: 'code reset succsess send in your email',
@@ -171,7 +173,6 @@ export const protect = catchAsync(async (req, res, next) => {
   const authorization = req.cookies.jwt;
 
   let token;
-
 
   if (authorization) token = authorization;
 
