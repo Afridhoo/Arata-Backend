@@ -6,7 +6,8 @@
   "scripts": {
     "dev:prod": "cross-env NODE_ENV=production nodemon server.js",
     "dev:dev": " nodemon server.js",
-    "debug": "nodemon --inspect server.js"
+    "debug": "nodemon --inspect server.js",
+    "start": "node server.js"
   },
   "author": "",
   "license": "ISC",
