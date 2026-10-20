@@ -49,7 +49,7 @@ export const getAllTour = catchAsync(async (req, res, next) => {
 
   if (price) match.price = { $gte: Number(price[0]), $lte: Number(price[1]) };
 
-  sort.createdAt = -1;
+  sort.createdAt = 1;
   const page = Math.max(Number(limit) || 1, 1);
   const limits = 10;
 
@@ -1025,7 +1025,6 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
   if (startLocation)
     await Tour.findByIdAndUpdate(tourId, {
       'startLocation.date': startLocation?.date,
-      isActiveTripTour: true,
       $set: {
         'startLocation.time': timeStart,
       },

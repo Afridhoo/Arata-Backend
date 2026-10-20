@@ -433,7 +433,12 @@ export const UpdateUserBooking = catchAsync(async (req, res, next) => {
     startDate: Date.now(),
   };
 
-  if (!checkIsDocIsReady) await Documentation.create(formatDocumentation);
+  if (!checkIsDocIsReady) {
+    await Promise.all([
+      Documentation.create(formatDocumentation),
+      Tour.findByIdAndUpdate(tourId, { isActiveTripTour: true }),
+    ]);
+  }
   if (checkIsDocIsReady) {
     const { _id } = checkIsDocIsReady;
     await Documentation.findByIdAndUpdate(_id, formatDocumentation);
