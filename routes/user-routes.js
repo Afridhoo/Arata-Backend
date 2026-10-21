@@ -16,16 +16,18 @@ import {
   login,
   loginByGoogle,
   logOut,
+  otpAuthRegister,
   protect,
   resetPassword,
-  signup,
+  
   updatePassword,
 } from '../controller/controller_auth.js';
 
 import { uploadImageUser } from '../helper/multer.js';
 
 export const userRouter = express.Router();
-userRouter.route('/signup').post(signup);
+userRouter.route('/signup').post(otpAuthRegister);
+
 
 userRouter.route('/login').post(login);
 userRouter.route('/logOut').post(logOut);
@@ -34,6 +36,8 @@ userRouter.route('/loginByGoogle').post(loginByGoogle);
 
 userRouter.route('/forgotPassword').post(forgotPassword);
 userRouter.route('/resetPassword/:token').patch(resetPassword);
+
+
 
 userRouter.use(protect);
 userRouter.route('/getAccount').get(getAccountMe);
@@ -44,7 +48,7 @@ userRouter
   .patch(uploadImageUser, convertImageUser, updateUser);
 userRouter.route('/deleteAccount').delete(deleteUser);
 
-userRouter.route('/getUser/:searchValue').get(accsess('admin'), findUserBy);
+userRouter.route('/getUser').get(accsess('admin'), findUserBy);
 
 userRouter.route('/getTripMe').get(accsess('user', 'admin'), getTrip);
 userRouter

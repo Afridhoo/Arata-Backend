@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema({
       message: 'please send correct phone',
     },
   },
-  isEmailVerified: Boolean,
+
+  isEmailVerified: { type: Boolean, default: true },
   googleId: { type: String, unique: true, sparse: true },
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
 
@@ -62,17 +63,56 @@ const userSchema = new mongoose.Schema({
       message: 'Cheking Password Again',
     },
   },
-  createAt: { type: Date, default: Date.now },
-  passwordChangedAt: { type: Date, select: false },
-  resetPasswordToken: { type: String },
-  resetPasswordTokenExpired: { type: Date },
-  loginAttempts: { type: Number, default: 0, select: false },
-  blockPasswordLogin: { type: Date },
-  active: { type: Boolean, default: true },
+  createAt: {
+    type: Date,
+    default: Date.now,
+  },
+
+  passwordChangedAt: {
+    type: Date,
+    select: false,
+  },
+
+  resetPasswordToken: {
+    type: String,
+  },
+
+  resetPasswordTokenExpired: {
+    type: Date,
+  },
+
+  loginAttempts: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+
+  blockPasswordLogin: {
+    type: Date,
+  },
+
+  otp: { type: String, select: false },
+  expiredOtp: { type: Date },
+  rateLimitSendEmail: { type: Number },
+  rateLimitOtp: { type: Number },
+
+  active: {
+    type: Boolean,
+    default: true,
+  },
+
   role: {
     type: String,
     default: 'user',
   },
+});
+
+userSchema.pre('save', async function () {
+  if (!this.otp) return;
+
+  if (this.isModified('otp')) {
+    this.otp = await bycrpt.hash(this.otp, 12);
+  }
 });
 
 userSchema.pre('save', async function () {
@@ -88,11 +128,8 @@ userSchema.pre('save', async function () {
   this.passwordChangedAt = Date.now() - 1000;
 });
 
-userSchema.methods.correctPassword = async function (
-  candidatePassword,
-  userPassword,
-) {
-  return await bycrpt.compare(candidatePassword, userPassword);
+userSchema.methods.compareBycrpt = async function (candidate, validHash) {
+  return await bycrpt.compare(candidate, validHash);
 };
 
 userSchema.methods.changedPasswordAfter = function (JWT_TimeStamp) {

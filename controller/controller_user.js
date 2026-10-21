@@ -50,8 +50,6 @@ export const updateUser = catchAsync(async (req, res, next) => {
 export const getAccountMe = catchAsync(async (req, res, next) => {
   const { id } = req.user;
 
-
-
   const value = await User.findById(id);
 
   res.status(200).json({
@@ -89,17 +87,30 @@ export const getStatsMe = catchAsync(async (req, res, next) => {
 });
 
 export const findUserBy = catchAsync(async (req, res, next) => {
-  const { searchValue } = req.params;
+  const { searchValue, role, page } = req.query || {};
 
-  const user = await User.find({
-    $or: [
-      { name: { $regex: searchValue, $options: 'i' } },
-      { email: { $regex: searchValue, $options: 'i' } },
-      { role: { $regex: searchValue, $options: 'i' } },
-    ],
-  });
+  const regex = {};
 
-  if (!user) return next(new errorApp('User Tidak Di Temukan'));
+  if (searchValue) {
+    const optionsRegex = { $regex: searchValue, $options: 'i' };
+    regex.name = optionsRegex;
+    regex.email = optionsRegex;
+  }
+
+  if (role) regex.role = { $regex: role, $options: 'i' };
+  
+  const pages = Math.max(Number(page) || 1, 1);
+  const limits = 10;
+
+  const user = await User.aggregate([
+    { $match: regex },
+
+    { $sort: { createdAt: -1 } },
+    { $skip: (pages - 1) * limits },
+    { $limit: limits },
+  ]);
+
+  if (!user) return next(new errorApp('User Tidak Di Temukan'), 404);
 
   res.status(200).json({
     status: 'sucsess',
