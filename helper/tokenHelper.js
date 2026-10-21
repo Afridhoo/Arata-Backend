@@ -39,8 +39,7 @@ export const sendToken = (res, user) => {
   res.cookie('jwt', token, cookies);
 
   user.password = undefined;
-  user.otp = undefined;
-  
+
   return res.status(200).json({
     status: 'success',
 

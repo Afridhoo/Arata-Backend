@@ -40,7 +40,7 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
       }),
       SendEmail({ name, toEmail: email, OTP }),
     ]);
-    
+
     return res.status(200).json({
       status: 'sucsess send Email',
       message: `Kode Otp Verifikasi Sudah Di Kirim  Ke Email ${email}`,
@@ -52,23 +52,32 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
     const checkLimitSendEmail = rateLimitSendEmail >= 3;
     const checkRateLimit = rateLimitOtp >= 5;
 
+    if (Date.now() < expiredOtp && !otpUser) {
+      return res.status(200).json({
+        status: 'Active OTP',
+        message: `OTP Masih Valid , Silahkan Cek Email ${email} dan Masukan OTP Kembali`,
+      });
+    }
+
     if (Date.now() >= expiredOtp) {
-      getUser.set({ name, email, password, confirmPassword, telphone });
+      getUser.set({
+        name,
+        email,
+        password,
+        confirmPassword,
+        telphone,
+        otp: OTP,
+      });
 
       await Promise.all([
-        User.findByIdAndUpdate(
-          _id,
-          {
-            $set: {
-              otp: OTP,
-              rateLimitOtp: 0,
-              expiredOtp: checkLimitSendEmail ? SEND_EMAIL_LIMIT : OTP_EXPIRED,
-              ...(checkLimitSendEmail && { rateLimitSendEmail: 1 }),
-            },
-            ...(!checkLimitSendEmail && { $inc: { rateLimitSendEmail: 1 } }),
+        User.findByIdAndUpdate(_id, {
+          $set: {
+            rateLimitOtp: 0,
+            expiredOtp: checkLimitSendEmail ? SEND_EMAIL_LIMIT : OTP_EXPIRED,
+            ...(checkLimitSendEmail && { rateLimitSendEmail: 1 }),
           },
-          { returnDocument: 'after' },
-        ),
+          ...(!checkLimitSendEmail && { $inc: { rateLimitSendEmail: 1 } }),
+        }),
         getUser.save(),
         SendEmail({ name, toEmail: email, OTP }),
       ]);
@@ -78,7 +87,8 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
         message: `Kami Sudah Kirim Otp Verifikasi Baru Ke Email ${email}`,
       });
     }
-    if (checkLimitSendEmail) {
+    
+    if (checkRateLimit && checkLimitSendEmail) {
       return next(
         new errorApp(
           'Akun Anda Dibatasi , Silahkan Tunggu 10 Menit Lagi Agar OTP Dikirim Ke Email Anda',
