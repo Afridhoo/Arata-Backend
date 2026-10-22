@@ -52,13 +52,6 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
     const checkLimitSendEmail = rateLimitSendEmail >= 3;
     const checkRateLimit = rateLimitOtp >= 5;
 
-    if (Date.now() < expiredOtp && !otpUser) {
-      return res.status(200).json({
-        status: 'Active OTP',
-        message: `OTP Masih Valid , Silahkan Cek Email ${email} dan Masukan OTP Kembali`,
-      });
-    }
-
     if (Date.now() >= expiredOtp) {
       getUser.set({
         name,
@@ -87,7 +80,14 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
         message: `Kami Sudah Kirim Otp Verifikasi Baru Ke Email ${email}`,
       });
     }
-    
+
+    if (Date.now() < expiredOtp && !otpUser) {
+      return res.status(200).json({
+        status: 'Active OTP',
+        message: `OTP Masih Valid , Silahkan Cek Email ${email} dan Masukan OTP Kembali`,
+      });
+    }
+
     if (checkRateLimit && checkLimitSendEmail) {
       return next(
         new errorApp(
