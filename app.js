@@ -24,11 +24,11 @@ export const app = express();
 
 app.use(helmet());
 
-const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: 'to many request , please try again :)',
-});
+// const limiter = rateLimit({
+//   max: 100,
+//   windowMs: 60 * 60 * 1000,
+//   message: 'to many request , please try again :)',
+// });
 
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
@@ -42,8 +42,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api', limiter);
-
+// app.use('/api', limiter);
+//
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }

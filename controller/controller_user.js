@@ -52,6 +52,9 @@ export const getAccountMe = catchAsync(async (req, res, next) => {
 
   const value = await User.findById(id);
 
+  
+
+
   res.status(200).json({
     status: 'sucsess',
     data: {

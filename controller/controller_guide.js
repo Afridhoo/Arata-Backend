@@ -193,6 +193,7 @@ export const getTourGuides = catchAsync(async (req, res, next) => {
         dateAssigned: 1,
         GetCategories: 1,
         userBooking: 1,
+        guides: 1,
       },
     },
   ]);
@@ -232,6 +233,7 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
     tourId,
     coordsMeAndDest,
     idUserBooking,
+    GuideIdentityUploadDoc,
   } = req.body;
 
   const userId = JSON.parse(idUserBooking);
@@ -323,6 +325,7 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
       completed_at: date?.to,
       groupLocation: chekingCoords[0],
       destinationLocation: chekingCoords[1],
+      guideIdentityUpload: GuideIdentityUploadDoc,
     },
   ];
 

@@ -284,11 +284,11 @@ export const protect = catchAsync(async (req, res, next) => {
 
   if (authorization) token = authorization;
 
-  const decod = await jwt.verify(token, process.env.JWT_SECRET);
-  const user = await User.findById(decod.id);
+  const decod = token ? await jwt.verify(token, process.env.JWT_SECRET) : null;
+  const user = decod ? await User.findById(decod.id) : null;
 
-  if (!user) return next(new errorApp('account does not exist.', 400));
   if (!token) return next(new errorApp('Log in first to access.', 401));
+  if (!user) return next(new errorApp('account does not exist.', 400));
 
   const changePassword = user?.changedPasswordAfter(decod.iat);
   if (changePassword) {

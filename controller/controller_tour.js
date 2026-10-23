@@ -1198,6 +1198,9 @@ export const getOneTour = catchAsync(async (req, res, next) => {
               $expr: { $eq: ['$$idTour', '$tour'] },
             },
           },
+
+          { $limit: 5 },
+
           {
             $lookup: {
               from: 'users',

@@ -3,6 +3,7 @@ import catchAsync from '../helper/catchAsync.js';
 import { Documentation } from '../models/model_dokumentation.js';
 import { GuideHistory } from '../models/model_guideHistory.js';
 import { Guide } from '../models/model_guides.js';
+import errorApp from '../helper/errorQuery.js';
 
 export const getHistoriesMe = catchAsync(async (req, res, next) => {
   const middlewareReq = req.user;
@@ -81,7 +82,10 @@ export const getHistoriesMe = catchAsync(async (req, res, next) => {
               {
                 $filter: {
                   input: {
-                    $concatArrays: ['$getTour.locations.destination', '$getTour.locations.hotel'],
+                    $concatArrays: [
+                      '$getTour.locations.destination',
+                      '$getTour.locations.hotel',
+                    ],
                   },
                   cond: {
                     $eq: ['$$this._id', '$lastAssigned'],
@@ -106,12 +110,54 @@ export const getHistoriesById = catchAsync(async (req, res, next) => {
   const middlewareReq = req.user;
 
   const getMeGuide = await Guide.findOne({ guides: middlewareReq._id });
+  const checkUserIsExist = await Documentation.exists({
+    'userBooking.userId': { $in: middlewareReq._id },
+  });
+
+  if (!getMeGuide && !checkUserIsExist)
+    return next(new errorApp('Tidak Bisa Mengakses URL Ini', 400));
 
   const getDoc = await Documentation.aggregate([
     {
       $match: {
         tour: new mongoose.Types.ObjectId(idTour),
-        guide: { $eq: getMeGuide._id },
+        $or: [
+          { guide: { $eq: getMeGuide?._id } },
+          { 'userBooking.userId': { $eq: middlewareReq?._id } },
+        ],
+      },
+    },
+
+    {
+      $lookup: {
+        from: 'guides',
+        let: { idGuide: '$guide' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $in: ['$_id', '$$idGuide'],
+              },
+            },
+          },
+
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'guides',
+              foreignField: '_id',
+              as: 'GuideIdentity',
+            },
+          },
+          {
+            $project: {
+              'GuideIdentity.name': 1,
+              'GuideIdentity.photo': 1,
+              guides: 1,
+            },
+          },
+        ],
+        as: 'DataGuide',
       },
     },
 
@@ -136,6 +182,19 @@ export const getHistoriesById = catchAsync(async (req, res, next) => {
               $mergeObjects: [
                 '$$t',
                 {
+                  guideUpload: {
+                    $first: {
+                      $filter: {
+                        input: '$DataGuide',
+                        as: 'g',
+                        cond: {
+                          $eq: ['$$g.guides', '$$t.guideIdentityUpload'],
+                        },
+                      },
+                    },
+                  },
+                },
+                {
                   locationsHandle: {
                     $first: {
                       $filter: {
@@ -157,6 +216,16 @@ export const getHistoriesById = catchAsync(async (req, res, next) => {
             },
           },
         },
+      },
+    },
+    {
+      $project: {
+        'trip.locationsHandle': 1,
+        'trip.note': 1,
+        'trip.guideUpload': 1,
+        'trip.images': 1,
+        'trip.uploadAt': 1,
+        userBooking: 1,
       },
     },
   ]);

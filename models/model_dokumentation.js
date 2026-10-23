@@ -25,7 +25,7 @@ const documentationSchema = new mongoose.Schema({
     {
       assigned_at: Date,
       completed_at: Date,
-      destination: { type: mongoose.Schema.ObjectId },
+      destination: mongoose.Schema.ObjectId,
       note: String,
       destinationLocation: [Number],
       groupLocation: [Number],
@@ -35,6 +35,7 @@ const documentationSchema = new mongoose.Schema({
         type: Date,
         default: Date.now(),
       },
+      guideIdentityUpload: mongoose.Schema.ObjectId,
     },
   ],
   startDate: Date,

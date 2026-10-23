@@ -14,4 +14,4 @@ guideHistoriesRouter
 
 guideHistoriesRouter
   .route('/getGuideHistoriesMe/:id')
-  .get(accsess('guide'), getHistoriesById);
+  .get(accsess('guide', 'admin', 'user'), getHistoriesById);
