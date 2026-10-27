@@ -4,7 +4,6 @@ import {
   addNewGuide,
   deleteDocumentationGuide,
   deleteSkillGuide,
-  getDestinationHandle,
   getMeGuide,
   getSameGuide,
   getTourGuides,
@@ -28,9 +27,7 @@ guideRouter.route('/addNewSkill').patch(accsess('guide'), updateSkillGuide);
 guideRouter.route('/deleteOneSkill').patch(accsess('guide'), deleteSkillGuide);
 
 guideRouter.route('/getTourGuides').get(accsess('guide'), getTourGuides);
-guideRouter
-  .route('/getDestinationHandle/:idTour/:idDestination')
-  .get(accsess('guide'), getDestinationHandle);
+
 
 guideRouter
   .route('/updateDestinationHandle')

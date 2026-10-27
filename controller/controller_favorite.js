@@ -10,7 +10,7 @@ export const CreateFavorite = catchAsync(async (req, res, next) => {
     return next(new errorApp('Gagal Melakukan Interkasi Dengan Favorite', 400));
 
   const getFavorite = await Favorite.exists({ user: user, tour: tour });
-
+  
   if (getFavorite) await Favorite.deleteOne({ user: user, tour: tour });
   else await Favorite.create(req.body);
 

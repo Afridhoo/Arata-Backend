@@ -11,22 +11,20 @@ import { User } from '../models/model_user.js';
 import { ApiCallOpenRouter } from '../Api/ApiOpenRouter.js';
 
 import { CategoriesTour } from '../models/model_categories.js';
-import jwt from 'jsonwebtoken';
+
 import { Favorite } from '../models/model_favorite.js';
 import { handleSorts } from './controller_handler.js';
-
-export const getFilterTour = async (req, res, next) => {
-  req.filterQuery = {
-    limit: '5',
-    sort: '-ratingsAverage,price',
-    fields: 'name,price,ratingsAverage,summary,difficulty',
-  };
-
-  next();
-};
+import { checkTokenIsValid } from '../helper/handlerTokenIsready.js';
+import { handleObjMongoose } from '../helper/handlerObjMongoose.js';
+import {
+  AssignedGuideToTask,
+  RemoveGuideFromTask,
+} from '../helper/handlerGuide.js';
+import { GetUserBookingUseFields } from '../helper/handlerBooking.js';
 
 export const getAllTour = catchAsync(async (req, res, next) => {
-  const authorization = req.cookies.jwt;
+  const authorization = await checkTokenIsValid(req.cookies.jwt);
+  const { status, idUser } = authorization;
 
   const match = {};
   const sort = {};
@@ -35,17 +33,16 @@ export const getAllTour = catchAsync(async (req, res, next) => {
     req.query || {};
 
   if (booking) handleSorts({ value: booking, key: 'bookedCount', sorts: sort });
-
   if (name) match.name = { $regex: name, $options: 'i' };
-
-  const handleObj = (val) => val?.map((x) => new mongoose.Types.ObjectId(x));
 
   if (categoriesDest)
     match['locations.destination.categories'] = {
-      $in: handleObj(categoriesDest),
+      $in: handleObjMongoose(categoriesDest),
     };
   if (categoriesHotel)
-    match['locations.hotel.categories'] = { $in: handleObj(categoriesHotel) };
+    match['locations.hotel.categories'] = {
+      $in: handleObjMongoose(categoriesHotel),
+    };
 
   if (price) match.price = { $gte: Number(price[0]), $lte: Number(price[1]) };
 
@@ -53,14 +50,9 @@ export const getAllTour = catchAsync(async (req, res, next) => {
   const page = Math.max(Number(limit) || 1, 1);
   const limits = 10;
 
-  let token;
-  if (authorization) token = authorization?.split(' ')?.[1];
-  const decod = token ? await jwt.verify(token, process.env.JWT_SECRET) : null;
-  const user = decod ? await User.findById(decod.id) : null;
-
   const [getCategories, getFavorite, value] = await Promise.all([
     CategoriesTour.find({ status: 'active' }),
-    user && Favorite.find({ user: user._id }),
+    status && Favorite.find({ user: idUser }),
     Tour.aggregate([
       { $match: match },
 
@@ -219,29 +211,6 @@ export const getTourHomePage = catchAsync(async (req, res, next) => {
   });
 });
 
-export const getToursWithin = catchAsync(async (req, res, next) => {
-  const { distance, latlng, unit } = req.params;
-  const [lat, lng] = latlng.split(',');
-
-  if (!lat || !lng) {
-    return next(new errorApp('Please Enter Your lat,lng'), 400);
-  }
-
-  const radius = unit === 'mi' ? distance / 3963.2 : distance / 6378.1;
-
-  const tour = await Tour.find({
-    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
-  });
-
-  res.status(200).json({
-    status: 'sucsess',
-    result: tour.length,
-    data: {
-      tour,
-    },
-  });
-});
-
 export const getDistanceLocTour = catchAsync(async (req, res, next) => {
   const { latlng, unit } = req.params;
   const [lat, lng] = latlng.split(',');
@@ -275,32 +244,6 @@ export const getDistanceLocTour = catchAsync(async (req, res, next) => {
     status: 'sucsess',
     data: {
       distance,
-    },
-  });
-});
-
-export const getTourStats = catchAsync(async (req, res, next) => {
-  const stats = await Tour.aggregate([
-    {
-      $match: { ratingsAverage: { $gte: 4.5 } },
-    },
-    {
-      $group: {
-        _id: '$difficulty',
-        numTours: { $sum: 1 },
-        numRating: { $sum: '$ratingsQuantity' },
-        avgRating: { $avg: '$ratingsAverage' },
-        avgPrice: { $avg: '$price' },
-        minPrice: { $min: '$price' },
-        maxPrice: { $max: '$price' },
-      },
-    },
-  ]);
-
-  res.status(200).json({
-    status: 'sucsess',
-    data: {
-      stats,
     },
   });
 });
@@ -362,48 +305,6 @@ export const GetToursBookingStats = catchAsync(async (req, res, next) => {
   });
 });
 
-export const getMonthlyPlan = catchAsync(async (req, res, next) => {
-  const year = Number(req.params.year);
-  const plan = await Tour.aggregate([
-    {
-      $unwind: '$startDates',
-    },
-    {
-      $match: {
-        startDates: {
-          $gte: new Date(`${year}-01-01`),
-          $lte: new Date(`${year}-12-30`),
-        },
-      },
-    },
-    {
-      $group: {
-        _id: { $month: '$startDates' },
-        amountTours: { $sum: 1 },
-        ToursList: {
-          $push: {
-            nameTour: '$name',
-            priceTour: '$price',
-          },
-        },
-      },
-    },
-    {
-      $addFields: { month: '$_id' },
-    },
-    {
-      $project: { _id: 0 },
-    },
-  ]);
-
-  res.status(200).json({
-    status: 'sucsess',
-    data: {
-      plan,
-    },
-  });
-});
-
 export const convertImgUpdate = catchAsync(async (req, res, next) => {
   const files = req.files;
 
@@ -433,7 +334,7 @@ export const convertImgUpdate = catchAsync(async (req, res, next) => {
 
         return value?.map((el) => ({
           ...el,
-          image: !el.image ? getSecureUrl(img)[idx++] : el.image,
+          image: !el.image && img ? getSecureUrl(img)[idx++] : el.image,
         }));
       }
 
@@ -925,36 +826,8 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
     timeStart,
   } = req.body;
 
-  if (idDeleteGuide.length > 0) {
-    const getGuideDelete = await Guide.find({ _id: { $in: idDeleteGuide } });
-    const getGuideAccDelete = getGuideDelete?.filter(
-      (el) => el.statusGuide === 'ongoing',
-    );
-
-    if (getGuideAccDelete.length > 0)
-      return next(
-        new errorApp(
-          'Guide Yang Ingin Anda Hapus Sudah Di Tugaskan Di Tempat Wisata Lain , Silahkan Refresh Page 😊',
-        ),
-      );
-    const guideDelete = getGuideDelete
-      ?.filter((el) => el.statusGuide !== 'ongoing')
-      .map((el) => el._id);
-
-    if (guideDelete.length > 0)
-      await Guide.updateMany(
-        {
-          _id: { $in: guideDelete },
-          statusGuide: { $in: ['pending', 'ready'] },
-        },
-        {
-          tour: null,
-          destinationHandle: [],
-          dateAssigned: null,
-          statusGuide: 'ready',
-        },
-      );
-  }
+  if (idDeleteGuide.length > 0)
+    await RemoveGuideFromTask({ idDeleteGuide, next });
 
   if (guide.length > 0) {
     const getIdGuide = guide?.map((el) => el._id);
@@ -979,26 +852,8 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
 
     const getFinalGuide = guide?.filter((el) => getReadyGuide.includes(el._id));
 
-    if (getFinalGuide.length > 0) {
-      const formatBulkWriteGuide = getFinalGuide.map((el) => ({
-        updateOne: {
-          filter: { _id: el._id, statusGuide: { $in: ['pending', 'ready'] } },
-          update: {
-            $set: {
-              tour: tourId,
-              destinationHandle: el.destination?.map(
-                (el) => new mongoose.Types.ObjectId(el),
-              ),
-
-              statusGuide: 'pending',
-              dateAssigned: Date.now(),
-            },
-          },
-        },
-      }));
-
-      await Guide.bulkWrite(formatBulkWriteGuide);
-    }
+    if (getFinalGuide.length > 0)
+      await AssignedGuideToTask({ getFinalGuide, tourId });
   }
 
   const helperQuery = (val, fields) =>
@@ -1031,15 +886,14 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
     });
 
   if (concatValDate.length > 0) {
-    const getUserBooking = await Booking.find({
-      tour: tourId,
-      status: 'confirmed',
+    const getUserBooking = await GetUserBookingUseFields({
+      fields: { tour: tourId, status: 'confirmed' },
     });
 
     const formatNotif = getUserBooking?.map((el) => ({
       booking: el._id,
       user: el.user,
-      message: `Tanggal Keberangkatan Dan Pemandu Sudah Di Tentukan , Untuk Tour ${nameTour} yang kamu Booking ,Pastikan Rombongan Anda Termasuk Anda Dengan Total ${el.quantity} Dikabari Juga, Silahkan Lihat Detail Lengkapnya`,
+      message: `Tanggal Keberangkatan Dan Pemandu Sudah Di Perbarui , Untuk Tour ${nameTour} yang kamu Booking ,Pastikan Rombongan Anda Termasuk Anda Dengan Total ${el.quantity} Dikabari Juga, Silahkan Lihat Detail Lengkapnya`,
       notifTrip: true,
     }));
 
@@ -1051,16 +905,6 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: 'sucsess',
-  });
-});
-
-export const getCategoriesTours = catchAsync(async (req, res, next) => {
-  const categories = await CategoriesTour.find({
-    typeCategories: 'destination',
-  });
-
-  res.status(200).json({
-    data: categories,
   });
 });
 
@@ -1118,23 +962,6 @@ export const getIsActiveTourTrip = catchAsync(async (req, res, next) => {
     status: 'sucsess',
     data: tour,
   });
-});
-
-export const reqLocationGuide = catchAsync(async (req, res, next) => {
-  const { tourId } = req.params;
-
-  const getGuide = await Guide.find({ tour: tourId });
-  const formatNotif = getGuide?.map((el) => ({
-    user: el.guides,
-    tourId,
-    message: 'Admin Meminta Lokasi Saat Ini , Segera Kirim Lokasi Rombongan',
-    createdAt: Date.now(),
-    isRead: false,
-  }));
-
-  await Notification.collection.insertMany(formatNotif);
-
-  res.status(204).send();
 });
 
 export const getLineRoad = catchAsync(async (req, res, next) => {

@@ -7,6 +7,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { uploadGoogleImg } from '../helper/cloudinary.js';
 import { SendEmail } from '../Api/Email/SendEmail.js';
 import crypto from 'crypto';
+import { checkTokenIsValid } from '../helper/handlerTokenIsready.js';
 
 export const otpAuthRegister = catchAsync(async (req, res, next) => {
   const OTP = crypto.randomInt(100000, 1000000);
@@ -278,14 +279,9 @@ export const updatePassword = catchAsync(async (req, res, next) => {
 });
 
 export const protect = catchAsync(async (req, res, next) => {
-  const authorization = req.cookies.jwt;
+  const authorization = await checkTokenIsValid(req.cookies.jwt);
 
-  let token;
-
-  if (authorization) token = authorization;
-
-  const decod = token ? await jwt.verify(token, process.env.JWT_SECRET) : null;
-  const user = decod ? await User.findById(decod.id) : null;
+  const { user, token, decod } = authorization;
 
   if (!token) return next(new errorApp('Log in first to access.', 401));
   if (!user) return next(new errorApp('account does not exist.', 400));

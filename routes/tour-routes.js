@@ -5,43 +5,42 @@ import {
   deleteLocationTour,
   deleteTour,
   getAllTour,
-  getCategoriesTours,
+  
   getDistanceLocTour,
-  getFilterTour,
+
+  
   getIsActiveTourTrip,
   getLineRoad,
   getLocationLatlng,
   getLocationSearch,
-  getMonthlyPlan,
   getOneTour,
   getOneToursBooking,
   getTourDestination,
   getTourHomePage,
   getToursBooking,
   GetToursBookingStats,
-  getTourStats,
-  getToursWithin,
   insertLatlng,
-  reqLocationGuide,
+ 
   updateDatesTour,
 } from '../controller/controller_tour.js';
 import { accsess, protect } from '../controller/controller_auth.js';
 import { reviewRouter } from './review-routes.js';
 import {
   addValue,
-  getAllValue,
+  
   updateOneById,
 } from '../controller/controller_handler.js';
 import { Tour } from '../models/model_tour.js';
 import { bookingRouter } from './booking-routes.js';
 import { uploadManyImage } from '../helper/multer.js';
+import { getCategoriesTours } from '../helper/handlerCategories.js';
 
 export const RouteRouter = express.Router();
 
 RouteRouter.use('/:tourId/review', reviewRouter);
 RouteRouter.use('/:tourId/booking', bookingRouter);
 
-RouteRouter.route('/top-5-tour').get(getFilterTour, getAllValue(Tour));
+
 RouteRouter.route('/')
   .get(getAllTour)
   .post(
@@ -53,18 +52,12 @@ RouteRouter.route('/')
   );
 RouteRouter.route('/tourHomePage').get(getTourHomePage);
 
-RouteRouter.route('/tour-stats').get(getTourStats);
-
 RouteRouter.route('/statsBookingTour').get(
   protect,
   accsess('admin'),
   GetToursBookingStats,
 );
 
-RouteRouter.route('/monthly-plan/:year').get(getMonthlyPlan);
-RouteRouter.route('/tours-within/:distance/center/:latlng/unit/:unit').get(
-  getToursWithin,
-);
 RouteRouter.route('/distances/:latlng/unit/:unit').get(getDistanceLocTour);
 
 RouteRouter.route('/getLocation/:position').get(
@@ -133,11 +126,6 @@ RouteRouter.route('/:id')
   )
   .delete(protect, accsess('admin'), deleteTour);
 
-RouteRouter.route('/reqLocationGuide/:tourId').get(
-  protect,
-  accsess('admin'),
-  reqLocationGuide,
-);
 
 RouteRouter.route('/getLineOpenRouter').post(
   protect,

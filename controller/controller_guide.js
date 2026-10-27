@@ -9,7 +9,6 @@ import { Documentation } from '../models/model_dokumentation.js';
 import { GuideHistory } from '../models/model_guideHistory.js';
 import { Booking } from '../models/model_booking.js';
 import { Notification } from '../models/model_notification.js';
-import DateNow from '../helper/formatDate.js';
 
 export const updateSkillGuide = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
@@ -204,15 +203,6 @@ export const getTourGuides = catchAsync(async (req, res, next) => {
   });
 });
 
-export const getDestinationHandle = catchAsync(async (req, res, next) => {
-  const { idTour, idDestination } = req.params;
-
-  res.status(200).json({
-    status: 'sucsess',
-    data: 1,
-  });
-});
-
 export const getMeGuide = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
   const guide = await Guide.findOne({ guides: middelwareReq._id });
@@ -301,11 +291,11 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
     }));
 
   const formatNotifAllFinish = handleFormatNotif(
-    `Terimakasih Sudah Mempercayakan Kami Untuk Kebutuhan Liburan Anda  , Tour Dengan Nama ${name} , Sudah Selesai Pada Tanggal ${DateNow()}`,
+    `Terimakasih Sudah Mempercayakan Kami Untuk Kebutuhan Liburan Anda  , Tour Dengan Nama ${name} , Sudah Selesai Pada Tanggal `,
   );
 
   const formatNotifOneFinish = handleFormatNotif(
-    ` Lokasi Wisata Dengan Nama ${description} Sudah Selesai , Pada Tanggal ${DateNow()} 👀`,
+    ` Lokasi Wisata Dengan Nama ${description} Sudah Selesai , Pada Tanggal `,
   );
 
   const imgDest = await Promise.all(
