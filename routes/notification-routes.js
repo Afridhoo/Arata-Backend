@@ -1,15 +1,17 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import {
   addValue,
   chekingSearch,
   insertParams,
 } from '../controller/controller_handler.js';
 import { Notification } from '../models/model_notification.js';
+
+import { accsess, protect } from '../middleware/auth/authorization.js';
 import {
   getUserNotification,
   patchReadNotification,
-} from '../controller/contoller_notification.js';
+} from '../controller/private/notification/user/notifPrivate.js';
 
 export const notificationRouter = express.Router();
 

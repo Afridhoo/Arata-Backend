@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import catchAsync from '../helper/catchAsync.js';
-import { Documentation } from '../models/model_dokumentation.js';
-import errorApp from '../helper/errorQuery.js';
+import catchAsync from '../../../helper/catchAsync.js';
+import errorApp from '../../../helper/errorQuery.js';
+import { Documentation } from '../../../models/model_dokumentation.js';
 
 export const getDocumentationMe = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
@@ -69,8 +69,6 @@ export const getDocumentationMe = catchAsync(async (req, res, next) => {
 
 export const getDocById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-
-  
 
   const middelwareReq = req.user;
   const objId = new mongoose.Types.ObjectId(id);
@@ -202,5 +200,3 @@ export const getDocById = catchAsync(async (req, res, next) => {
     data: getDoc,
   });
 });
-
-

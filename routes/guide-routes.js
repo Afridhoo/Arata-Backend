@@ -1,18 +1,21 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import {
   addNewGuide,
+  getSameGuide,
+} from '../controller/private/guidePrivate/admin/guidePrivate.js';
+import {
   deleteDocumentationGuide,
   deleteSkillGuide,
   getMeGuide,
-  getSameGuide,
   getTourGuides,
   UpdateDestinationHandle,
   updateDokumentationGuide,
   updateSkillGuide,
   UpdateUserBooking,
-} from '../controller/controller_guide.js';
+} from '../controller/private/guidePrivate/guide/guidePrivate.js';
 import { uploadImageDocumentation } from '../helper/multer.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const guideRouter = express.Router();
 
@@ -27,7 +30,6 @@ guideRouter.route('/addNewSkill').patch(accsess('guide'), updateSkillGuide);
 guideRouter.route('/deleteOneSkill').patch(accsess('guide'), deleteSkillGuide);
 
 guideRouter.route('/getTourGuides').get(accsess('guide'), getTourGuides);
-
 
 guideRouter
   .route('/updateDestinationHandle')

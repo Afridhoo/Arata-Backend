@@ -1,8 +1,8 @@
 import catchAsync from '../helper/catchAsync.js';
 import errorApp from '../helper/errorQuery.js';
-import { checkTokenIsValid, sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
+import { sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
 import { User } from '../models/model_user.js';
-import jwt from 'jsonwebtoken';
+
 import { OAuth2Client } from 'google-auth-library';
 import { uploadGoogleImg } from '../helper/cloudinary.js';
 import { SendEmail } from '../Api/Email/SendEmail.js';
@@ -198,12 +198,16 @@ export const loginByGoogle = catchAsync(async (req, res, next) => {
     const checkEmailIsReady = await User.exists({ email });
 
     if (checkEmailIsReady) {
-      userData = await User.findOneAndUpdate({
-        email,
-        googleId: sub,
-        isEmailVerified: true,
-        authProvider: 'local',
-      });
+      userData = await User.findOneAndUpdate(
+        { email },
+        {
+          $set: {
+            googleId: sub,
+            isEmailVerified: true,
+            authProvider: 'local',
+          },
+        },
+      );
     } else {
       userData = await User.create({
         name,
@@ -276,29 +280,3 @@ export const updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
   sendToken(res, user);
 });
-
-export const protect = catchAsync(async (req, res, next) => {
-  const authorization = await checkTokenIsValid(req.cookies.jwt);
-
-  const { user, token, decod } = authorization;
-
-  if (!token) return next(new errorApp('Log in first to access.', 401));
-  if (!user) return next(new errorApp('account does not exist.', 400));
-
-  const changePassword = user?.changedPasswordAfter(decod.iat);
-  if (changePassword) {
-    return next(new errorApp('The account password has been changed.', 401));
-  }
-
-  req.user = user;
-  next();
-});
-
-export const accsess = (...role) => {
-  return (req, res, next) => {
-    if (!role.includes(req.user.role))
-      return next(new errorApp('cannot accsess this url'), 400);
-
-    next();
-  };
-};

@@ -1,9 +1,10 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+;
 import {
   DeleteReviewGuide,
   PostReviewGuide,
 } from '../controller/controller_guideReview.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const guideReviewRouter = express.Router();
 

@@ -1,45 +1,42 @@
 import express from 'express';
-import {
-  convertImage,
-  convertImgUpdate,
-  deleteLocationTour,
-  deleteTour,
-  getAllTour,
-  
-  getDistanceLocTour,
 
-  
-  getIsActiveTourTrip,
-  getLineRoad,
-  getLocationLatlng,
-  getLocationSearch,
-  getOneTour,
-  getOneToursBooking,
-  getTourDestination,
-  getTourHomePage,
-  getToursBooking,
-  GetToursBookingStats,
-  insertLatlng,
- 
-  updateDatesTour,
-} from '../controller/controller_tour.js';
-import { accsess, protect } from '../controller/controller_auth.js';
 import { reviewRouter } from './review-routes.js';
-import {
-  addValue,
-  
-  updateOneById,
-} from '../controller/controller_handler.js';
+import { addValue, updateOneById } from '../controller/controller_handler.js';
 import { Tour } from '../models/model_tour.js';
 import { bookingRouter } from './booking-routes.js';
 import { uploadManyImage } from '../helper/multer.js';
 import { getCategoriesTours } from '../helper/handlerCategories.js';
+import { getTourDestination } from '../Api/ApiGeoapify.js';
+
+import { getLocationLatlng, getLocationSearch } from '../Api/ApiNominatim.js';
+import { getLineRoad } from '../Api/ApiOpenRouter.js';
+
+import {
+  getAllTour,
+  getOneTour,
+  getTourHomePage,
+} from '../controller/public/tourPublic.js';
+import {
+  deleteLocationTour,
+  deleteTour,
+  getIsActiveTourTrip,
+  getOneToursBooking,
+  getToursBooking,
+  GetToursBookingStats,
+  updateDatesTour,
+} from '../controller/private/tourPrivate/admin/tourPrivate.js';
+
+import {
+  convertImage,
+  convertImgUpdate,
+} from '../middleware/tour/imageTour.js';
+import { insertLatlng } from '../middleware/coordinates/insertLatLng.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const RouteRouter = express.Router();
 
 RouteRouter.use('/:tourId/review', reviewRouter);
 RouteRouter.use('/:tourId/booking', bookingRouter);
-
 
 RouteRouter.route('/')
   .get(getAllTour)
@@ -57,8 +54,6 @@ RouteRouter.route('/statsBookingTour').get(
   accsess('admin'),
   GetToursBookingStats,
 );
-
-RouteRouter.route('/distances/:latlng/unit/:unit').get(getDistanceLocTour);
 
 RouteRouter.route('/getLocation/:position').get(
   protect,
@@ -111,7 +106,7 @@ RouteRouter.route('/getAllCategoriesTour').get(
 
 RouteRouter.route('/getTourActiveTrip').get(
   protect,
-  accsess('admin', 'guide'),
+  accsess('admin'),
   getIsActiveTourTrip,
 );
 
@@ -125,7 +120,6 @@ RouteRouter.route('/:id')
     updateOneById(Tour),
   )
   .delete(protect, accsess('admin'), deleteTour);
-
 
 RouteRouter.route('/getLineOpenRouter').post(
   protect,

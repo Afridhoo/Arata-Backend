@@ -1,21 +1,15 @@
 import catchAsync from '../helper/catchAsync.js';
 import errorApp from '../helper/errorQuery.js';
-import ApiFeatures from '../helper/filterQuery.js';
+
 
 export const getAllValue = (model) =>
   catchAsync(async (req, res, next) => {
     let getParams = {};
     if (req.params.tourId) getParams.tour = req.params.tourId;
 
-    const features = new ApiFeatures(model.find(getParams), req.query)
-      .filter()
-      .sort()
-      .fields()
-      .page();
+    const value = await model.find();
 
-    const value = await features.query;
-
-    if (!value) return next(new errorApp('invalid Get Value.', 400));
+    if (!value) return next(new errorApp('Data yang anda cari tidak tersedia', 400));
 
     res.status(200).json({
       status: 'sucsess',

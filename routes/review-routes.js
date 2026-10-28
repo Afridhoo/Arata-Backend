@@ -1,5 +1,5 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import {
   chekingSearch,
   deleteOneById,
@@ -8,6 +8,7 @@ import {
 } from '../controller/controller_handler.js';
 import { Review } from '../models/model.review.js';
 import { PostReview } from '../controller/controller_review.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const reviewRouter = express.Router({ mergeParams: true });
 

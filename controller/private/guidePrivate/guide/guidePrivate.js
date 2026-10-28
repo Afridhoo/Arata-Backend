@@ -1,14 +1,65 @@
-import mongoose from 'mongoose';
-import catchAsync from '../helper/catchAsync.js';
-import { Guide } from '../models/model_guides.js';
-import { User } from '../models/model_user.js';
-import { streamUpload } from '../helper/cloudinary.js';
-import { Tour } from '../models/model_tour.js';
-import errorApp from '../helper/errorQuery.js';
-import { Documentation } from '../models/model_dokumentation.js';
-import { GuideHistory } from '../models/model_guideHistory.js';
-import { Booking } from '../models/model_booking.js';
-import { Notification } from '../models/model_notification.js';
+import catchAsync from '../../../../helper/catchAsync.js';
+import { streamUpload } from '../../../../helper/cloudinary.js';
+import errorApp from '../../../../helper/errorQuery.js';
+import {
+  Notification_Trip_Finish,
+  Notification_Trip_OneLocationFinish,
+} from '../../../../helper/handlerNotification.js';
+import { handleOneObjMongoose } from '../../../../helper/handlerObjMongoose.js';
+import { Booking } from '../../../../models/model_booking.js';
+import { Documentation } from '../../../../models/model_dokumentation.js';
+import { GuideHistory } from '../../../../models/model_guideHistory.js';
+import { Guide } from '../../../../models/model_guides.js';
+import { Tour } from '../../../../models/model_tour.js';
+import { User } from '../../../../models/model_user.js';
+
+export const getMeGuide = catchAsync(async (req, res, next) => {
+  const middelwareReq = req.user;
+  const guide = await Guide.findOne({ guides: middelwareReq._id });
+
+  res.status(200).json({
+    status: 'sucsess',
+    data: guide,
+  });
+});
+
+export const UpdateUserBooking = catchAsync(async (req, res, next) => {
+  const { tourId, userBooking, userBookingId } = req.body;
+
+  const [getGuideReady, checkIsDocIsReady] = await Promise.all([
+    Guide.find({ tour: tourId }),
+    Documentation.findOne({
+      tour: tourId,
+      statusDocumentation: 'ongoing',
+    }),
+  ]);
+
+  const getIdGuide = getGuideReady?.map((el) => el._id);
+
+  const formatDocumentation = {
+    tour: tourId,
+    guide: getIdGuide,
+    userBooking,
+    userBookingId,
+    statusDocumentation: 'ongoing',
+    startDate: Date.now(),
+  };
+
+  if (!checkIsDocIsReady) {
+    await Promise.all([
+      Documentation.create(formatDocumentation),
+      Tour.findByIdAndUpdate(tourId, { isActiveTripTour: true }),
+    ]);
+  }
+  if (checkIsDocIsReady) {
+    const { _id } = checkIsDocIsReady;
+    await Documentation.findByIdAndUpdate(_id, formatDocumentation);
+  }
+
+  res.status(204).json({
+    status: 'sucsess',
+  });
+});
 
 export const updateSkillGuide = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
@@ -38,32 +89,11 @@ export const deleteSkillGuide = catchAsync(async (req, res, next) => {
   });
 });
 
-export const addNewGuide = catchAsync(async (req, res, next) => {
-  const { id, newRole } = req.body;
-
-  const getUser = await User.findById(id);
-  if (!getUser) return next(new errorApp('User Tidak Di Temukan'));
-
-  const { role, name } = getUser;
-  if (newRole === role)
-    return next(
-      new errorApp(`User Dengan Nama ${name} Sudah Memiliki Role ${newRole}`),
-    );
-
-  if (newRole === 'guide')
-    await Guide.create({ guides: id, assignedAt: Date.now() });
-  await User.findByIdAndUpdate(id, { role: newRole });
-
-  res.status(200).json({
-    status: 'sucsess',
-  });
-});
-
 export const getTourGuides = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
 
   const getValue = await Guide.aggregate([
-    { $match: { guides: new mongoose.Types.ObjectId(middelwareReq._id) } },
+    { $match: { guides: handleOneObjMongoose(middelwareReq._id) } },
     {
       $lookup: {
         from: 'tours',
@@ -203,16 +233,6 @@ export const getTourGuides = catchAsync(async (req, res, next) => {
   });
 });
 
-export const getMeGuide = catchAsync(async (req, res, next) => {
-  const middelwareReq = req.user;
-  const guide = await Guide.findOne({ guides: middelwareReq._id });
-
-  res.status(200).json({
-    status: 'sucsess',
-    data: guide,
-  });
-});
-
 export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
   const files = req.files;
 
@@ -239,7 +259,7 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
   if (!checkStatsDoc)
     return next(
       new errorApp(
-        'Gagal Upload Dokumentasi , Wista Tidak Ada , Silahkan Refresh Page Dan Jika Belum Mengabsen Rombongan Silahkan Absen Dulu',
+        'Gagal Upload Dokumentasi , Wista Belum Ada , Silahkan Refresh Page Dan Jika Belum Mengabsen Rombongan Silahkan Absen Dulu',
       ),
     );
 
@@ -281,22 +301,6 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
 
   const checkFinal = concatVal.length - checkIsFinish;
   const { typeLocation, date, description } = getLocUpdate;
-
-  const handleFormatNotif = (message) =>
-    getBooking?.map((el) => ({
-      booking: el._id,
-      user: el.user,
-      message: message,
-      typeNotif: 'trip',
-    }));
-
-  const formatNotifAllFinish = handleFormatNotif(
-    `Terimakasih Sudah Mempercayakan Kami Untuk Kebutuhan Liburan Anda  , Tour Dengan Nama ${name} , Sudah Selesai Pada Tanggal `,
-  );
-
-  const formatNotifOneFinish = handleFormatNotif(
-    ` Lokasi Wisata Dengan Nama ${description} Sudah Selesai , Pada Tanggal `,
-  );
 
   const imgDest = await Promise.all(
     files?.imageDocumentation?.map((el) => streamUpload(el.buffer)),
@@ -346,7 +350,10 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
 
     await Promise.all(
       formatGuideHistory.map(async (el) => GuideHistory.create(el)),
-      Notification.insertMany(formatNotifOneFinish),
+      Notification_Trip_OneLocationFinish({
+        value: { description },
+        userBooking: getBooking,
+      }),
     );
   }
 
@@ -367,7 +374,9 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
       ),
 
       User.updateMany({ _id: { $in: userId } }, { isActiveTrip: false }),
-      Notification.insertMany(formatNotifAllFinish),
+
+      Notification_Trip_Finish({ value: { name }, userBooking: getBooking }),
+
       Guide.updateMany(
         { tour: tourId },
         {
@@ -404,44 +413,6 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
   });
 });
 
-export const UpdateUserBooking = catchAsync(async (req, res, next) => {
-  const { tourId, userBooking, userBookingId } = req.body;
-
-  const [getGuideReady, checkIsDocIsReady] = await Promise.all([
-    Guide.find({ tour: tourId }),
-    Documentation.findOne({
-      tour: tourId,
-      statusDocumentation: 'ongoing',
-    }),
-  ]);
-
-  const getIdGuide = getGuideReady?.map((el) => el._id);
-
-  const formatDocumentation = {
-    tour: tourId,
-    guide: getIdGuide,
-    userBooking,
-    userBookingId,
-    statusDocumentation: 'ongoing',
-    startDate: Date.now(),
-  };
-
-  if (!checkIsDocIsReady) {
-    await Promise.all([
-      Documentation.create(formatDocumentation),
-      Tour.findByIdAndUpdate(tourId, { isActiveTripTour: true }),
-    ]);
-  }
-  if (checkIsDocIsReady) {
-    const { _id } = checkIsDocIsReady;
-    await Documentation.findByIdAndUpdate(_id, formatDocumentation);
-  }
-
-  res.status(204).json({
-    status: 'sucsess',
-  });
-});
-
 export const updateDokumentationGuide = catchAsync(async (req, res, next) => {
   const files = req.files;
   const { dataFormat, oldImage } = req.body;
@@ -464,15 +435,13 @@ export const updateDokumentationGuide = catchAsync(async (req, res, next) => {
     images: [...(getSecureUrl(imgDest) || []), ...(oldImages || [])],
   }));
 
-  const handleObjId = (val) => new mongoose.Types.ObjectId(val);
   const getDoc = await Documentation.exists({ _id: documentationId });
-
   if (!getDoc) return next(new errorApp('Dokumentasi Tidak Ada', 404));
 
   await Documentation.updateOne(
     {
-      _id: handleObjId(documentationId),
-      'trip._id': handleObjId(idTrip),
+      _id: handleOneObjMongoose(documentationId),
+      'trip._id': handleOneObjMongoose(idTrip),
     },
     { $set: { 'trip.$': finalFormat } },
   );
@@ -483,14 +452,12 @@ export const updateDokumentationGuide = catchAsync(async (req, res, next) => {
 export const deleteDocumentationGuide = catchAsync(async (req, res, next) => {
   const { idTrip, documentationId, idDestination } = req.body;
 
-  const handleObjFormat = (val) => new mongoose.Types.ObjectId(val);
   const handleToString = (val) => val?.toString();
 
   const getDoc = await Documentation.findById(documentationId);
-
   if (!getDoc) return next(new errorApp('Gagal Menghapus Dokumentasi'));
-  const { trip } = getDoc || [];
 
+  const { trip } = getDoc || [];
   const checkStatus = trip?.find(
     (e) => handleToString(e._id) === handleToString(idTrip),
   );
@@ -499,7 +466,7 @@ export const deleteDocumentationGuide = catchAsync(async (req, res, next) => {
     (e) => handleToString(e.destination) === handleToString(idDestination),
   );
 
-  if (checkLength?.length === 1)
+  if (checkLength?.length <= 1)
     return next(
       new errorApp(
         'Setiap Perjalanan Wajib Memilki Setidaknya 1 , Silahkan Edit Gambar Yang  Ingin Anda Ubah',
@@ -511,91 +478,15 @@ export const deleteDocumentationGuide = catchAsync(async (req, res, next) => {
   if (statusHandle === 'finished')
     return next(
       new errorApp(
-        'Wisata ini Bersetatus Finish , Guide Lain Mungkin Sudah Mengupdate Status Wisata Ini , Silahkan Refresh Page 😊',
+        'Wisata ini Berstatus Finish , Guide Lain Mungkin Sudah Mengupdate Status Wisata Ini , Silahkan Refresh Page 😊',
         400,
       ),
     );
 
   await Documentation.updateOne(
-    { _id: handleObjFormat(documentationId) },
-    { $pull: { trip: { _id: handleObjFormat(idTrip) } } },
+    { _id: handleOneObjMongoose(documentationId) },
+    { $pull: { trip: { _id: handleOneObjMongoose(idTrip) } } },
   );
 
   res.status(204).send();
-});
-
-export const getSameGuide = catchAsync(async (req, res, next) => {
-  const { value } = req.body;
-  const { idUserBooking, guide } = value;
-
-  const objIdHandle = (val) =>
-    val?.map((el) => new mongoose.Types.ObjectId(el));
-
-  const idUser = objIdHandle(idUserBooking);
-  const idGuide = objIdHandle(guide);
-
-  const [getUsers, getGuides] = await Promise.allSettled([
-    User.find({ _id: idUser }),
-    Guide.aggregate([
-      { $match: { _id: { $in: idGuide } } },
-
-      {
-        $lookup: {
-          from: 'tours',
-          localField: 'tour',
-          foreignField: '_id',
-          as: 'getTour',
-        },
-      },
-
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'guides',
-          foreignField: '_id',
-          as: 'guideIdentity',
-        },
-      },
-
-      { $unwind: '$getTour' },
-
-      {
-        $addFields: {
-          destHandle: {
-            $filter: {
-              input: '$getTour.locations.destination',
-              cond: {
-                $in: ['$$this._id', '$destinationHandle'],
-              },
-            },
-          },
-        },
-      },
-
-      { $unwind: '$guideIdentity' },
-
-      {
-        $project: {
-          destHandle: 1,
-          'guideIdentity.name': 1,
-          'guideIdentity.email': 1,
-          'guideIdentity.photo': 1,
-          'guideIdentity.telphone': 1,
-          'guideIdentity._id': 1,
-        },
-      },
-    ]),
-  ]);
-
-  const finalValue = { getUser: [], getGuide: [] };
-
-  const cheking = (val) => val.status === 'fulfilled' && val.value.length > 0;
-
-  if (cheking(getUsers)) finalValue.getUser = getUsers.value;
-  if (cheking(getGuides)) finalValue.getGuide = getGuides.value;
-
-  res.status(200).json({
-    status: 'sucsess',
-    data: finalValue,
-  });
 });

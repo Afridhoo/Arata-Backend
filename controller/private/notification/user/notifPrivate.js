@@ -1,6 +1,5 @@
-import catchAsync from '../helper/catchAsync.js';
-
-import { Notification } from '../models/model_notification.js';
+import catchAsync from "../../../../helper/catchAsync.js";
+import { Notification } from "../../../../models/model_notification.js";
 
 export const getUserNotification = catchAsync(async (req, res, next) => {
   const middelwareReq = req.user;
@@ -25,6 +24,7 @@ export const getUserNotification = catchAsync(async (req, res, next) => {
     data: notifications,
   });
 });
+
 
 export const patchReadNotification = catchAsync(async (req, res, next) => {
   const { id } = req.params;

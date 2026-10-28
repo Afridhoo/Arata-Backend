@@ -1,16 +1,20 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import { addValue, insertParams } from '../controller/controller_handler.js';
 import { Booking } from '../models/model_booking.js';
+
 import {
-  cancelBookingById,
-  chekingMaxGroup,
   getAllValueBooking,
   getRevenueBooking,
+  updateBooking,
+} from '../controller/private/booking/admin/bookingPrivate.js';
+import {
+  cancelBookingById,
   getUserBooking,
   oneBookingMe,
-  updateBooking,
-} from '../controller/contolller_booking.js';
+} from '../controller/private/booking/user/bookingPrivate.js';
+import { chekingMaxGroup } from '../middleware/booking/checkMaxGroup.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const bookingRouter = express.Router({ mergeParams: true });
 
@@ -25,7 +29,7 @@ bookingRouter
     addValue(Booking),
   );
 bookingRouter.route('/getRevenue').get(accsess('admin'), getRevenueBooking);
-bookingRouter.route('/meBooking').get(getUserBooking);
+bookingRouter.route('/meBooking').get(accsess('user', 'admin'), getUserBooking);
 bookingRouter.route('/cancel/:id').patch(cancelBookingById);
 
 bookingRouter

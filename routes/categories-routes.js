@@ -1,5 +1,5 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import {
   addValue,
   getAllValue,
@@ -7,6 +7,7 @@ import {
   updateOneById,
 } from '../controller/controller_handler.js';
 import { CategoriesTour } from '../models/model_categories.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const categoriesRouter = express.Router();
 

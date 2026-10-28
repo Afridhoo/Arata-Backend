@@ -1,9 +1,10 @@
 import express from 'express';
-import { accsess, protect } from '../controller/controller_auth.js';
+
 import {
   getHistoriesById,
   getHistoriesMe,
 } from '../controller/controller_guideHistories.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const guideHistoriesRouter = express.Router();
 

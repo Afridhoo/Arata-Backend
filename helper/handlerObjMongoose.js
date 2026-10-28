@@ -7,3 +7,8 @@ export function handleObjMongoose(val) {
 export function handleObjMongooseById(val) {
   return val?.map((s) => new mongoose.Types.ObjectId(s._id));
 }
+
+export function handleOneObjMongoose(val) {
+  return new mongoose.Types.ObjectId(val);
+}
+

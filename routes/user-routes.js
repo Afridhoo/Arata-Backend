@@ -11,23 +11,20 @@ import {
 } from '../controller/controller_user.js';
 
 import {
-  accsess,
   forgotPassword,
   login,
   loginByGoogle,
   logOut,
   otpAuthRegister,
-  protect,
   resetPassword,
-  
   updatePassword,
 } from '../controller/controller_auth.js';
 
 import { uploadImageUser } from '../helper/multer.js';
+import { accsess, protect } from '../middleware/auth/authorization.js';
 
 export const userRouter = express.Router();
 userRouter.route('/signup').post(otpAuthRegister);
-
 
 userRouter.route('/login').post(login);
 userRouter.route('/logOut').post(logOut);
@@ -36,8 +33,6 @@ userRouter.route('/loginByGoogle').post(loginByGoogle);
 
 userRouter.route('/forgotPassword').post(forgotPassword);
 userRouter.route('/resetPassword/:token').patch(resetPassword);
-
-
 
 userRouter.use(protect);
 userRouter.route('/getAccount').get(getAccountMe);
