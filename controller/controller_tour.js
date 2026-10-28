@@ -14,13 +14,13 @@ import { CategoriesTour } from '../models/model_categories.js';
 
 import { Favorite } from '../models/model_favorite.js';
 import { handleSorts } from './controller_handler.js';
-import { checkTokenIsValid } from '../helper/handlerTokenIsready.js';
 import { handleObjMongoose } from '../helper/handlerObjMongoose.js';
 import {
   AssignedGuideToTask,
   RemoveGuideFromTask,
 } from '../helper/handlerGuide.js';
 import { GetUserBookingUseFields } from '../helper/handlerBooking.js';
+import { checkTokenIsValid } from '../helper/tokenHelper.js';
 
 export const getAllTour = catchAsync(async (req, res, next) => {
   const authorization = await checkTokenIsValid(req.cookies.jwt);

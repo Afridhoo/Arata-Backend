@@ -1,13 +1,12 @@
 import catchAsync from '../helper/catchAsync.js';
 import errorApp from '../helper/errorQuery.js';
-import { sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
+import { checkTokenIsValid, sendToken, sendTokenLogout } from '../helper/tokenHelper.js';
 import { User } from '../models/model_user.js';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { uploadGoogleImg } from '../helper/cloudinary.js';
 import { SendEmail } from '../Api/Email/SendEmail.js';
 import crypto from 'crypto';
-import { checkTokenIsValid } from '../helper/handlerTokenIsready.js';
 
 export const otpAuthRegister = catchAsync(async (req, res, next) => {
   const OTP = crypto.randomInt(100000, 1000000);
