@@ -12,6 +12,8 @@ import {
 import errorApp from '../../../../helper/errorQuery.js';
 import { Guide } from '../../../../models/model_guides.js';
 import { NotificationDateTour } from '../../../../helper/handlerNotification.js';
+import { handleOneObjMongoose } from '../../../../helper/handlerObjMongoose.js';
+import { Documentation } from '../../../../models/model_dokumentation.js';
 
 export const getIsActiveTourTrip = catchAsync(async (req, res, next) => {
   const tour = await Tour.aggregate([
@@ -479,7 +481,7 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
 
   if (concatValDate.length > 0) {
     const getUserBooking = await GetUserBookingUseFields({
-      fields: { tour: tourId, status: 'confirmed' },
+      filter: { tour: tourId, status: 'confirmed' },
     });
 
     await Promise.all([
@@ -495,57 +497,74 @@ export const updateDatesTour = catchAsync(async (req, res, next) => {
 });
 
 export const deleteLocationTour = catchAsync(async (req, res, next) => {
-  const { tour, idlocation } = req.params;
+  const { idTour, idlocation } = req.params;
 
-  // await Tour.findOneAndUpdate(
-  //   { _id: tour },
-  //   {
-  //     $pull: {
-  //       'locations.destination': { _id: idlocation },
-  //       'locations.hotel': { _id: idlocation },
-  //     },
-  //   },
-  // );
+  const checkDocIsReady = await Documentation.exists({ tour: idTour });
+  const checkIsTourOngoing = await Tour.exists({
+    _id: idTour,
+    isActiveTripTour: true,
+  });
 
+  if (checkIsTourOngoing)
+    return next(
+      new errorApp(
+        'Tour Ini Sedang Berjalan , Tidak Bisaa Menghapus Lokasi Wisata',
+        400,
+      ),
+    );
+
+  if (checkDocIsReady) {
+    await Tour.findOneAndUpdate(
+      {
+        _id: idTour,
+        $or: [
+          { 'locations.destination._id': idlocation },
+          { 'locations.hotel._id': idlocation },
+        ],
+      },
+      {
+        $set: {
+          'locations.destination.$[destination].isActive': false,
+          'locations.hotel.$[hotel].isActive': false,
+        },
+      },
+      {
+        arrayFilters: [
+          { 'destination._id': idlocation },
+          { 'hotel._id': idlocation },
+        ],
+      },
+    );
+  } else {
+    await Tour.findOneAndUpdate(
+      { _id: idTour },
+      {
+        $pull: {
+          'locations.destination': { _id: idlocation },
+          'locations.hotel': { _id: idlocation },
+        },
+      },
+    );
+  }
   res.status(204).send();
 });
 
 export const deleteTour = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
+  const { id: idTour } = req.params;
 
-  // const [booking, guide] = await Promise.all([
-  //   await Booking.find({ tour: id }),
-  //   await Guide.find({ tour: id }),
-  // ]);
+  const getBooking = await Booking.countDocuments({
+    tour: handleOneObjMongoose(idTour),
+  });
 
-  // const getUserId = [...(booking || []), ...(guide || [])].map(
-  //   (el) => new mongoose.Types.ObjectId(el.user),
-  // );
-
-  // const valNotif = getUserId?.map((el) => ({
-  //   user: el,
-  //   tourId: id,
-  //   createdAt: Date.now(),
-  //   isRead: false,
-  //   message: `Mohon Maaf , Tour Ini Kami Batalkan ,Hubungi Admin Untuk Detail Lebih Lanjut ❗`,
-  // }));
-
-  // await Promise.all([
-  //   await Guide.updateMany(
-  //     { tour: id },
-  //     {
-  //       $set: { destinationHandle: [], statusGuide: 'ready' },
-  //       $unset: { tour: '', dateAssigned: '' },
-  //     },
-  //   ),
-  //   await User.updateMany({ _id: getUserId }, { isActiveTrip: false }),
-
-  //   await Booking.deleteMany({ tour: id }),
-  //   await Notification.collection.insertMany(valNotif),
-  //   await Tour.findByIdAndDelete(id),
-  // ]);
+  if (getBooking >= 1) await Tour.findByIdAndUpdate(idTour, { soldOut: true });
+  if (getBooking <= 0)
+    await Tour.findByIdAndUpdate(idTour, { isActiveTour: false });
 
   res.status(200).json({
     status: 'sucsess',
+    message:
+      getBooking >= 1
+        ? 'Status Tour Sudah Di Ubah Menjadi Sold Out'
+        : 'Status Tour Sudah Tidak Aktif Lagi Untuk Sementara Sampai Admin Mengaktifkannya Kembali',
   });
 });

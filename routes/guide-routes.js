@@ -25,6 +25,7 @@ guideRouter
   .post(accsess('admin'), addNewGuide)
   .get(accsess('guide'), getMeGuide)
   .patch(accsess('guide'), UpdateUserBooking);
+
 guideRouter.route('/addNewSkill').patch(accsess('guide'), updateSkillGuide);
 
 guideRouter.route('/deleteOneSkill').patch(accsess('guide'), deleteSkillGuide);

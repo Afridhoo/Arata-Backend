@@ -1,7 +1,6 @@
 import catchAsync from '../helper/catchAsync.js';
 import errorApp from '../helper/errorQuery.js';
 
-
 export const getAllValue = (model) =>
   catchAsync(async (req, res, next) => {
     let getParams = {};
@@ -9,7 +8,8 @@ export const getAllValue = (model) =>
 
     const value = await model.find();
 
-    if (!value) return next(new errorApp('Data yang anda cari tidak tersedia', 400));
+    if (!value)
+      return next(new errorApp('Data yang anda cari tidak tersedia', 400));
 
     res.status(200).json({
       status: 'sucsess',
@@ -38,40 +38,6 @@ export const updateOneById = (model) =>
 
     const value = await model.findByIdAndUpdate(id, req.body);
     if (!value) return next(new errorApp('invalid Update.', 400));
-
-    res.status(200).json({
-      status: 'sucsess',
-      data: {
-        value,
-      },
-    });
-  });
-
-export const getOneById = (model) =>
-  catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-
-    const url = req.baseUrl.split('/')[3];
-    let prossValue;
-
-    if (url === 'tours')
-      prossValue = model.findById(id).populate([{ path: 'review' }]);
-    else if (url === 'booking') {
-      prossValue = model.findById(id).populate([
-        {
-          path: 'tour',
-          select:
-            'name photo price imageCover startDates slot maxGroupSize locations ',
-        },
-        {
-          path: 'user',
-          select: 'name email telphone',
-        },
-      ]);
-    } else prossValue = model.findById(id);
-
-    if (!prossValue) return next(new errorApp('invalid query.', 400));
-    const value = await prossValue;
 
     res.status(200).json({
       status: 'sucsess',
@@ -120,11 +86,12 @@ export const chekingSearch = (model) =>
     const chekingUser =
       value?.user?.toString() !== middelwareUser._id?.toString();
 
-    if (chekingUser) return next(new errorApp('Invalid Query'), 400);
+    if (chekingUser)
+      return next(new errorApp('Tidak Bisa Mengakses Fitur Ini', 400));
 
     if (method === 'GET')
       if (middelwareUser.role !== 'admin' && value.role === 'admin') {
-        return next(new errorApp('invalid Search.', 400));
+        return next(new errorApp('Tidak Bisa Mengakses Fitur Ini', 400));
       }
 
     next();

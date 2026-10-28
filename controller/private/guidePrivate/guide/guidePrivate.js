@@ -247,7 +247,6 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
   } = req.body;
 
   const userId = JSON.parse(idUserBooking);
-
   const coordinatesNew = JSON.parse(coordsMeAndDest);
   const chekingCoords = coordinatesNew ? coordinatesNew : [];
 

@@ -80,7 +80,7 @@ RouteRouter.route('/getGuideTour/:IdTour').get(
   getOneToursBooking,
 );
 
-RouteRouter.route('/deleteLocation/:tour/location/:idlocation').delete(
+RouteRouter.route('/deleteLocation/:idTour/location/:idlocation').delete(
   protect,
   accsess('admin'),
   deleteLocationTour,

@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  deleteUser,
+
   updateUser,
   getStatsMe,
   convertImageUser,
@@ -41,7 +41,7 @@ userRouter.route('/updatePassword').patch(updatePassword);
 userRouter
   .route('/updateAccount')
   .patch(uploadImageUser, convertImageUser, updateUser);
-userRouter.route('/deleteAccount').delete(deleteUser);
+
 
 userRouter.route('/getUser').get(accsess('admin'), findUserBy);
 

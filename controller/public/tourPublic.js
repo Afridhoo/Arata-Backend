@@ -1,13 +1,13 @@
-import mongoose from "mongoose";
-import catchAsync from "../../helper/catchAsync.js";
-import { Booking } from "../../models/model_booking.js";
-import { User } from "../../models/model_user.js";
-import { Tour } from "../../models/model_tour.js";
-import { handleObjMongoose } from "../../helper/handlerObjMongoose.js";
-import { handleSorts } from "../controller_handler.js";
-import { checkTokenIsValid } from "../../helper/tokenHelper.js";
-import { CategoriesTour } from "../../models/model_categories.js";
-import { Favorite } from "../../models/model_favorite.js";
+import mongoose from 'mongoose';
+import catchAsync from '../../helper/catchAsync.js';
+import { Booking } from '../../models/model_booking.js';
+import { User } from '../../models/model_user.js';
+import { Tour } from '../../models/model_tour.js';
+import { handleObjMongoose } from '../../helper/handlerObjMongoose.js';
+import { handleSorts } from '../controller_handler.js';
+import { checkTokenIsValid } from '../../helper/tokenHelper.js';
+import { CategoriesTour } from '../../models/model_categories.js';
+import { Favorite } from '../../models/model_favorite.js';
 
 export const getTourHomePage = catchAsync(async (req, res, next) => {
   const [getGuide, getTour] = await Promise.all([
@@ -138,9 +138,6 @@ export const getTourHomePage = catchAsync(async (req, res, next) => {
     data: { getTour, getGuide },
   });
 });
-
-
-
 
 export const getOneTour = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -326,9 +323,6 @@ export const getOneTour = catchAsync(async (req, res, next) => {
   });
 });
 
-
-
-
 export const getAllTour = catchAsync(async (req, res, next) => {
   const authorization = await checkTokenIsValid(req.cookies.jwt);
   const { status, idUser } = authorization;
@@ -336,8 +330,20 @@ export const getAllTour = catchAsync(async (req, res, next) => {
   const match = {};
   const sort = {};
 
-  const { categoriesHotel, categoriesDest, price, limit, name, booking } =
-    req.query || {};
+  const {
+    categoriesHotel,
+    categoriesDest,
+    price,
+    limit,
+    name,
+    booking,
+    tourStatus,
+  } = req.query || {};
+
+  if (tourStatus) {
+    const validate = tourStatus === 'active' ? true : false;
+    match.isActiveTour = validate;
+  }
 
   if (booking) handleSorts({ value: booking, key: 'bookedCount', sorts: sort });
   if (name) match.name = { $regex: name, $options: 'i' };

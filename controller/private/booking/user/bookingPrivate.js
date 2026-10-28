@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 import catchAsync from '../../../../helper/catchAsync.js';
 import { Booking } from '../../../../models/model_booking.js';
-import { Notification } from '../../../../models/model_notification.js';
 import { Tour } from '../../../../models/model_tour.js';
 import { User } from '../../../../models/model_user.js';
 import errorApp from '../../../../helper/errorQuery.js';
+import { Notification_CancelBooking_User } from '../../../../helper/handlerNotification.js';
 
 export const getUserBooking = catchAsync(async (req, res, next) => {
   const middlewareReq = req.user;
@@ -21,11 +21,11 @@ export const getUserBooking = catchAsync(async (req, res, next) => {
 });
 
 export const cancelBookingById = catchAsync(async (req, res, next) => {
-  const middlewareReq = req.user;
+  const idUserHit = req.user._id;
   const { id } = req.params;
 
   const getBooking = await Booking.findById(id).populate('tour');
-  const { _id: idUserHit } = middlewareReq;
+
   const {
     user: userBookingId,
     status,
@@ -34,13 +34,12 @@ export const cancelBookingById = catchAsync(async (req, res, next) => {
     _id: idBooking,
     bookingDate,
   } = getBooking;
+  const { slot, name, isActiveTripTour } = tour;
 
-  const { slot, name } = tour;
-  const formatNotif = {
-    booking: idBooking,
-    user: idUserHit,
-    message: `Pesanan Tour Anda Yang Di Pesan Pada Tanggal ${bookingDate} Dengan Nama ${name} Dengan Jumlah Pesanan ${quantity} Berhasil Anda Batalkan Pada Tanggal `,
-  };
+  if (isActiveTripTour)
+    return next(
+      new errorApp('Gagal Membatalkan Booking , Booking Ini Sedang Aktif', 400),
+    );
 
   if (idUserHit.toString() === userBookingId.toString()) {
     await Promise.all([
@@ -51,7 +50,13 @@ export const cancelBookingById = catchAsync(async (req, res, next) => {
       User.findByIdAndUpdate(idUserHit, {
         isActiveTrip: false,
       }),
-      Notification.create(formatNotif),
+      Notification_CancelBooking_User({
+        idBooking,
+        idUserHit,
+        bookingDate,
+        name,
+        quantity,
+      }),
     ]);
 
     if (status === 'confirmed')
@@ -63,7 +68,6 @@ export const cancelBookingById = catchAsync(async (req, res, next) => {
     message: 'Succsess Deleted Booking',
   });
 });
-
 
 export const oneBookingMe = catchAsync(async (req, res, next) => {
   const { id } = req.params;

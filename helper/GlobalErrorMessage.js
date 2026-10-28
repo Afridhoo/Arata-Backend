@@ -35,7 +35,7 @@ const errProd = (res, err) => {
     messageErr = `Duplicate ${key} : ${value}`;
   } else if (err.name === 'ValidationError' && err.errors?._id) {
     // If User Insert or update inclueds Id
-    messageErr = `Do not provide ID manually, it will be generated automatically`;
+    messageErr = `Jangan Menyertakan Id Disini , Biarkan Digenerate Otomatis Oleh MongoDB`;
   } else if (err.name === 'CastError') {
     // ID Undefined
     messageErr = `invalid ${err.path} : ${err.value}`;
@@ -44,7 +44,7 @@ const errProd = (res, err) => {
     err.name === 'TokenExpiredError'
   ) {
     // Token Invalid
-    messageErr = 'Please Log in Again';
+    messageErr = 'Silahkan Login Lagi';
   } else {
     // unknown Error
     messageErr = err.message;

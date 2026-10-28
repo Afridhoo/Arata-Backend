@@ -11,12 +11,7 @@ import { guideReview } from '../models/model_guideReview.js';
 import { Favorite } from '../models/model_favorite.js';
 import { GuideHistory } from '../models/model_guideHistory.js';
 
-export const deleteUser = catchAsync(async (req, res, next) => {
-  const middelwareReq = req.user;
-  await User.findByIdAndUpdate(middelwareReq._id, { active: false });
 
-  res.status(204).send();
-});
 
 export const convertImageUser = catchAsync(async (req, res, next) => {
   const file = req.file;

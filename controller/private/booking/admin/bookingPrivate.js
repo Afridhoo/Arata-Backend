@@ -1,7 +1,8 @@
 import catchAsync from '../../../../helper/catchAsync.js';
 import errorApp from '../../../../helper/errorQuery.js';
+import { Notification_ConfirmedBooking } from '../../../../helper/handlerNotification.js';
 import { Booking } from '../../../../models/model_booking.js';
-import { Notification } from '../../../../models/model_notification.js';
+
 import { Tour } from '../../../../models/model_tour.js';
 
 export const getRevenueBooking = catchAsync(async (req, res, next) => {
@@ -162,7 +163,9 @@ export const updateBooking = catchAsync(async (req, res, next) => {
 
   if (totalsAllBooking > maxGroupSize)
     return next(
-      new errorApp('Jumlah Pesanan Melebihi Batas,Booking Tidak Bisa Di Konfirmasi'),
+      new errorApp(
+        'Jumlah Pesanan Melebihi Batas,Booking Tidak Bisa Di Konfirmasi',
+      ),
     );
 
   if (totalsAllBooking === maxGroupSize)
@@ -170,14 +173,17 @@ export const updateBooking = catchAsync(async (req, res, next) => {
       soldOut: true,
     });
 
-  const formatNotif = {
-    booking: bookingId,
-    user,
-    message: `Booking Yang Di Pesan Pada Tanggal ${bookingDate} Dengan Nama Tour ${name} Pembayaran ${payment}, Sudah Di Konfirmasi , Dengan Total Pesanan ${quantity} Orang `,
-  };
   if (status === 'confirmed') {
     await Promise.all([
-      Notification.create(formatNotif),
+      Notification_ConfirmedBooking({
+        bookingId,
+        userId: user,
+        bookingDate,
+        name,
+        payment,
+        quantity,
+      }),
+
       Tour.findByIdAndUpdate(tourId, {
         slot: slot - quantity,
         isBooking: true,

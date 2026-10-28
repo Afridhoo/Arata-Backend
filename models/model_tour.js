@@ -45,6 +45,12 @@ const tourSchema = new mongoose.Schema(
         message: 'Discount Must Be Lower Than Price',
       },
     },
+
+    isActiveTour: {
+      type: Boolean,
+      default: true,
+    },
+
     isBooking: {
       type: Boolean,
       default: false,

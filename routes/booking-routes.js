@@ -30,7 +30,9 @@ bookingRouter
   );
 bookingRouter.route('/getRevenue').get(accsess('admin'), getRevenueBooking);
 bookingRouter.route('/meBooking').get(accsess('user', 'admin'), getUserBooking);
-bookingRouter.route('/cancel/:id').patch(cancelBookingById);
+bookingRouter
+  .route('/cancel/:id')
+  .patch(accsess('user', 'admin'), cancelBookingById);
 
 bookingRouter
   .route('/:id')
