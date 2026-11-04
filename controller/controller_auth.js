@@ -7,6 +7,13 @@ import { OAuth2Client } from 'google-auth-library';
 import { uploadGoogleImg } from '../helper/cloudinary.js';
 import { SendEmail } from '../Api/Email/SendEmail.js';
 import crypto from 'crypto';
+import { UserDelayed } from '../models/model_userDelayed.js';
+import {
+  checkIsLimitSendemail,
+  checkIsLimitSendOtp,
+  checkisOTPExpired,
+  checkOtpValid,
+} from '../Api/Email/ValidationEmail.js';
 
 export const otpAuthRegister = catchAsync(async (req, res, next) => {
   const OTP = crypto.randomInt(100000, 1000000);
@@ -16,28 +23,129 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
   const { name, email, otpUser, confirmPassword, password, telphone } =
     req.body;
 
-  const getUser = await User.findOne({ email }).select('+otp');
+  const [getUser, getUserDelayed] = await Promise.all([
+    User.findOne({ email }).select('+otp'),
+    UserDelayed.findOne({ email }),
+  ]);
 
-  if (getUser?.isEmailVerified)
+  if (getUser)
     return next(
       new errorApp('Email Ini Sudah Terdaftar Silahkan Login Ulang', 400),
     );
 
-  if (!getUser) {
+  if (getUserDelayed) {
+    const {
+      email,
+      name,
+      otp,
+      otpExpired,
+      countSendEmail,
+      countSendOtp,
+      _id,
+      blockedSendOtp,
+      blockedSendEmail,
+    } = getUserDelayed;
+
+    if (!checkisOTPExpired(blockedSendEmail)) {
+      return next(
+        new errorApp(
+          'Permintaan Mengirimkan Kode OTP Melalui Email Di Batasi , Tunggu 10 Menit Lagi',
+          400,
+        ),
+      );
+    }
+
+    if (!checkisOTPExpired(blockedSendOtp)) {
+      return next(
+        new errorApp(
+          'Permintaan Mengirimkan Kode OTP Di Batasi , Tunggu 5 Menit Lagi',
+          400,
+        ),
+      );
+    }
+
+    if (checkisOTPExpired(otpExpired)) {
+      await Promise.all([
+        UserDelayed.findByIdAndUpdate(_id, {
+          $inc: { countSendEmail: 1 },
+          countSendOtp: 0,
+          otpExpired: OTP_EXPIRED,
+          otp: OTP,
+        }),
+        SendEmail({ name, toEmail: email, OTP }),
+      ]);
+
+      return res.status(200).json({
+        status: 'sucsess send Email',
+        message: `Kode Otp Verifikasi Sudah Di Kirim  Ke Email ${email}`,
+      });
+    }
+
+    if (
+      checkIsLimitSendemail(countSendEmail) &&
+      checkIsLimitSendOtp(countSendOtp)
+    ) {
+      await UserDelayed.findByIdAndUpdate(_id, {
+        blockedSendEmail: SEND_EMAIL_LIMIT,
+        countSendEmail: 0,
+        countSendOtp: 0,
+      });
+      return next(
+        new errorApp(
+          'Permintaan Mengirimkan Kode OTP Melalui Email Di Batasi , Tunggu 10 Menit Lagi',
+          400,
+        ),
+      );
+    }
+
+    if (checkIsLimitSendOtp(countSendOtp)) {
+      await UserDelayed.findByIdAndUpdate(_id, {
+        blockedSendOtp: OTP_EXPIRED,
+        countSendOtp: 0,
+      });
+      return next(
+        new errorApp(
+          'Permintaan Mengirimkan Kode OTP Di Batasi , Tunggu 5 Menit Lagi',
+          400,
+        ),
+      );
+    }
+
+    if (!checkOtpValid(otp, otpUser)) {
+      await UserDelayed.findByIdAndUpdate(_id, {
+        $inc: { countSendOtp: 1 },
+      });
+
+      return next(new errorApp('Kode OTP Salah , Silahkan Coba Lagi'), 400);
+    }
+
+    if (checkOtpValid(otp, otpUser)) {
+      await UserDelayed.findByIdAndDelete(_id);
+
+      const newUser = await User.create({
+        name,
+        email,
+        password,
+        confirmPassword,
+        role: 'user',
+        telphone,
+      });
+
+      sendToken(res, newUser);
+    }
+  }
+
+  if (!getUserDelayed) {
     await Promise.all([
-      User.create({
+      UserDelayed.create({
         name,
         email,
         otp: OTP,
-        isEmailVerified: false,
-        expiredOtp: OTP_EXPIRED,
-        password,
-        confirmPassword,
-        telphone,
-        active: false,
-        rateLimitOtp: 0,
-        rateLimitSendEmail: 0,
+        otpExpired: OTP_EXPIRED,
+        countSendOtp: 0,
+        countSendEmail: 1,
       }),
+
       SendEmail({ name, toEmail: email, OTP }),
     ]);
 
@@ -46,88 +154,11 @@ export const otpAuthRegister = catchAsync(async (req, res, next) => {
       message: `Kode Otp Verifikasi Sudah Di Kirim  Ke Email ${email}`,
     });
   }
-
-  if (getUser) {
-    const { otp, expiredOtp, rateLimitOtp, _id, rateLimitSendEmail } = getUser;
-    const checkLimitSendEmail = rateLimitSendEmail >= 3;
-    const checkRateLimit = rateLimitOtp >= 5;
-
-    if (Date.now() >= expiredOtp) {
-      getUser.set({
-        name,
-        email,
-        password,
-        confirmPassword,
-        telphone,
-        otp: OTP,
-      });
-
-      await Promise.all([
-        User.findByIdAndUpdate(_id, {
-          $set: {
-            rateLimitOtp: 0,
-            expiredOtp: checkLimitSendEmail ? SEND_EMAIL_LIMIT : OTP_EXPIRED,
-            ...(checkLimitSendEmail && { rateLimitSendEmail: 1 }),
-          },
-          ...(!checkLimitSendEmail && { $inc: { rateLimitSendEmail: 1 } }),
-        }),
-        getUser.save(),
-        SendEmail({ name, toEmail: email, OTP }),
-      ]);
-
-      return res.status(200).json({
-        status: 'sucsess send Email',
-        message: `Kami Sudah Kirim Otp Verifikasi Baru Ke Email ${email}`,
-      });
-    }
-
-    if (Date.now() < expiredOtp && !otpUser) {
-      return res.status(200).json({
-        status: 'Active OTP',
-        message: `OTP Masih Valid , Silahkan Cek Email ${email} dan Masukan OTP Kembali`,
-      });
-    }
-
-    if (checkRateLimit && checkLimitSendEmail) {
-      return next(
-        new errorApp(
-          'Akun Anda Dibatasi , Silahkan Tunggu 10 Menit Lagi Agar OTP Dikirim Ke Email Anda',
-          400,
-        ),
-      );
-    }
-
-    if (checkRateLimit) {
-      return next(
-        new errorApp(
-          'Akun Anda Dibatasi , Silahkan Tunggu 5 Menit Untuk Registrasi Ulang',
-          400,
-        ),
-      );
-    }
-
-    const checkOtp = await getUser.compareBycrpt(otpUser, otp);
-
-    if (!checkOtp) {
-      await User.findByIdAndUpdate(_id, { $inc: { rateLimitOtp: 1 } });
-      return next(new errorApp('Kode Otp Yang Anda Masukan Salah', 400));
-    }
-
-    await User.findByIdAndUpdate(_id, {
-      isEmailVerified: true,
-      active: true,
-      $unset: { rateLimitSendEmail: 1, rateLimitOtp: 1, expiredOtp: 1, otp: 1 },
-    });
-
-    sendToken(res, getUser);
-  }
 });
 
 export const login = catchAsync(async (req, res, next) => {
   if (!req.body.email || !req.body.password) {
-    return next(
-      new errorApp('Please enter your email & password in this form', 400),
-    );
+    return next(new errorApp('Silahkan Masukan Email Dan Password', 400));
   }
   const { email, password } = req.body;
 

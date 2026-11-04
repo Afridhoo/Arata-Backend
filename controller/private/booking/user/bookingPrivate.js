@@ -113,7 +113,7 @@ export const oneBookingMe = catchAsync(async (req, res, next) => {
   ]);
 
   if (middelwareReq._id.toString() !== getBooking?.[0].user?.toString())
-    return next(new errorApp('Tidak Bisa Mengakses Url Ini !', 400));
+    return next(new errorApp('Tidak Bisa Mengakses Url Ini', 400));
 
   res.status(200).json({
     status: 'sucsess',

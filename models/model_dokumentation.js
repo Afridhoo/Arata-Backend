@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const documentationSchema = new mongoose.Schema({
   tour: { type: mongoose.Schema.ObjectId, ref: 'Tour' },
   guide: [{ type: mongoose.Schema.ObjectId, ref: 'Guide' }],
-  userBookingId: [{ type: mongoose.Schema.ObjectId }],
+  userBookingId: [{ type: mongoose.Schema.ObjectId, ref: 'Booking' }],
   userBooking: [
     {
       userId: { type: mongoose.Schema.ObjectId, ref: 'User' },
