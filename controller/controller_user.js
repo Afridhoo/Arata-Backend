@@ -11,8 +11,6 @@ import { guideReview } from '../models/model_guideReview.js';
 import { Favorite } from '../models/model_favorite.js';
 import { GuideHistory } from '../models/model_guideHistory.js';
 
-
-
 export const convertImageUser = catchAsync(async (req, res, next) => {
   const file = req.file;
 
@@ -46,9 +44,6 @@ export const getAccountMe = catchAsync(async (req, res, next) => {
   const { id } = req.user;
 
   const value = await User.findById(id);
-
-  
-
 
   res.status(200).json({
     status: 'sucsess',
@@ -91,12 +86,11 @@ export const findUserBy = catchAsync(async (req, res, next) => {
 
   if (searchValue) {
     const optionsRegex = { $regex: searchValue, $options: 'i' };
-    regex.name = optionsRegex;
-    regex.email = optionsRegex;
+    regex.$or = [{ name: optionsRegex }, { email: optionsRegex }];
   }
 
   if (role) regex.role = { $regex: role, $options: 'i' };
-  
+
   const pages = Math.max(Number(page) || 1, 1);
   const limits = 10;
 
@@ -108,7 +102,7 @@ export const findUserBy = catchAsync(async (req, res, next) => {
     { $limit: limits },
   ]);
 
-  if (!user) return next(new errorApp('User Tidak Di Temukan'), 404);
+  if (!user) return next(new errorApp('User Tidak Di Temukan', 404));
 
   res.status(200).json({
     status: 'sucsess',

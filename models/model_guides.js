@@ -16,7 +16,7 @@ const guideSchema = new mongoose.Schema({
 
   statusGuide: {
     type: String,
-    enum: ['ready', 'pending', 'ongoing', 'finished', 'cancelled', 'inactive'],
+    enum: ['ready', 'pending', 'ongoing', 'finished', 'cancelled', 'nonaktif'],
     default: 'ready',
   },
 

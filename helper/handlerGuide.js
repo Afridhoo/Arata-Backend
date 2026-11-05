@@ -1,6 +1,9 @@
 import { Guide } from '../models/model_guides.js';
 import errorApp from './errorQuery.js';
-import { handleObjMongoose } from './handlerObjMongoose.js';
+import {
+  handleObjMongoose,
+  handleOneObjMongoose,
+} from './handlerObjMongoose.js';
 
 export async function RemoveGuideFromTask({ idDeleteGuide = [], next }) {
   const getGuideDelete = await Guide.find({ _id: { $in: idDeleteGuide } });
@@ -50,4 +53,11 @@ export async function AssignedGuideToTask({ getFinalGuide = [], tourId }) {
   }));
 
   await Guide.bulkWrite(formatBulkWriteGuide);
+}
+
+export async function UpdateStatusGuideByGuides(idGuide, update) {
+  return await Guide.updateOne(
+    { guides: handleOneObjMongoose(idGuide) },
+    update,
+  );
 }

@@ -27,7 +27,7 @@ app.use(helmet());
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
-  message: 'to many request , please try again :)',
+  message: 'Terlalu Banyak Permintaan Data , Silahkan Coba Lagi Nanti:)',
 });
 
 app.use(cookieParser());

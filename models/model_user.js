@@ -87,15 +87,6 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
 
-  blockPasswordLogin: {
-    type: Date,
-  },
-
-  otp: { type: String, select: false },
-  expiredOtp: { type: Date },
-  rateLimitSendEmail: { type: Number },
-  rateLimitOtp: { type: Number },
-
   active: {
     type: Boolean,
     default: true,

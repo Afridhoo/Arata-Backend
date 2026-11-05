@@ -1,6 +1,8 @@
 import catchAsync from '../../../../helper/catchAsync.js';
 import errorApp from '../../../../helper/errorQuery.js';
+import { UpdateStatusGuideByGuides } from '../../../../helper/handlerGuide.js';
 import { handleObjMongoose } from '../../../../helper/handlerObjMongoose.js';
+import { UpdateUser } from '../../../../helper/handlerUser.js';
 import { Guide } from '../../../../models/model_guides.js';
 import { User } from '../../../../models/model_user.js';
 
@@ -8,6 +10,7 @@ export const addNewGuide = catchAsync(async (req, res, next) => {
   const { id, newRole } = req.body;
 
   const getUser = await User.findById(id);
+
   if (!getUser) return next(new errorApp('User Tidak Di Temukan'));
 
   const { role, name } = getUser;
@@ -19,13 +22,30 @@ export const addNewGuide = catchAsync(async (req, res, next) => {
       ),
     );
 
+  if (role === 'guide' && newRole === 'user')
+    return next(
+      new errorApp(
+        'Guide Tidak Bisa Diubah Menjadi User , Silahkan Nonaktifkan Jika Ingin Menonaktifkan Guide',
+        402,
+      ),
+    );
+
   if (newRole === 'guide')
     await Guide.create({ guides: id, assignedAt: Date.now() });
-  else await User.findByIdAndUpdate(id, { role: newRole });
 
-  res.status(200).json({
-    status: 'sucsess',
-  });
+  if (newRole === 'nonaktif') {
+    await UpdateUser(id, { active: false });
+    if (role === 'guide') {
+      await UpdateStatusGuideByGuides(id, { statusGuide: 'nonaktif' });
+    }
+  } else if (newRole === 'aktif') {
+    await UpdateUser(id, { active: true });
+    if (role === 'guide') {
+      await UpdateStatusGuideByGuides(id, { statusGuide: 'ready' });
+    }
+  } else await UpdateUser(id, { role: newRole });
+
+  res.status(204).send();
 });
 
 export const getSameGuide = catchAsync(async (req, res, next) => {
