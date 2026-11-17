@@ -288,7 +288,6 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
       ...el,
       dateFinished: null,
       status: 'pending',
-      date: null,
     }));
 
   const getLocUpdate = concatVal.find(
@@ -392,7 +391,6 @@ export const UpdateDestinationHandle = catchAsync(async (req, res, next) => {
         'locations.destination': removeStats(destination),
         'locations.hotel': removeStats(hotel),
         slot: maxGroupSize,
-        'startLocation.date': null,
       }),
     ]);
   } else {

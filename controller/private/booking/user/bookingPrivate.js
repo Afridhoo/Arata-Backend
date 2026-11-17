@@ -38,7 +38,7 @@ export const cancelBookingById = catchAsync(async (req, res, next) => {
 
   if (isActiveTripTour)
     return next(
-      new errorApp('Gagal Membatalkan Booking , Booking Ini Sedang Aktif', 400),
+      new errorApp('Gagal Membatalkan Booking , Booking Ini Sedang Berjalan', 400),
     );
 
   if (idUserHit.toString() === userBookingId.toString()) {
