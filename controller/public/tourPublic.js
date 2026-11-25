@@ -324,9 +324,6 @@ export const getOneTour = catchAsync(async (req, res, next) => {
 });
 
 export const getAllTour = catchAsync(async (req, res, next) => {
-  const authorization = await checkTokenIsValid(req.cookies.jwt);
-  const { status, idUser } = authorization;
-
   const match = {};
   const sort = {};
 
@@ -365,7 +362,7 @@ export const getAllTour = catchAsync(async (req, res, next) => {
 
   const [getCategories, getFavorite, value] = await Promise.all([
     CategoriesTour.find({ status: 'active' }),
-    status && Favorite.find({ user: idUser }),
+    [],
     Tour.aggregate([
       { $match: match },
 
